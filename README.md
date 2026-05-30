@@ -1,1 +1,1 @@
-# scoutsgimak.github.io
+# scoutsgimak.org
