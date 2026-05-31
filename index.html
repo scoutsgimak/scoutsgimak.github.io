@@ -1,1 +1,56 @@
-À trouver dans le fichier
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta property="og:title" content="Scouts GIMAK — Groupe Imam Mamadou Konaté de Lakota | SMCI">
+<meta property="og:description" content="Toujours prêt, toujours fidèle — Groupe scout musulman basé à Lakota, région du Lôh-Djiboua, Côte d'Ivoire.">
+<title>Scouts GIMAK — Scouts Musulmans de Lakota, CI</title>
+<link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --green-dark:#0f3d1f;--green-mid:#1a6b35;--green-light:#2a9050;
+  --green-pale:#e8f5ed;--gold:#d4a017;--gold-light:#f0c84a;
+  --cream:#fdfaf4;--text:#1a2e1f;--text-muted:#4a6155;--white:#fff;--radius:14px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Nunito',sans-serif;background:var(--cream);color:var(--text);overflow-x:hidden}
+a{color:inherit;text-decoration:none}
+.geo-bg{position:relative;overflow:hidden}
+.geo-bg::before{content:'';position:absolute;inset:0;
+  background-image:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' stroke='rgba(255,255,255,0.07)' stroke-width='1'%[...]
+  background-size:60px 60px;pointer-events:none;z-index:0}
+.geo-bg>*{position:relative;z-index:1}
+
+/* ===== NAV ===== */
+nav{position:sticky;top:0;z-index:100;background:var(--green-dark);box-shadow:0 2px 16px rgba(0,0,0,.35)}
+.nav-inner{display:flex;align-items:center;justify-content:space-between;padding:0 24px;height:58px}
+.nav-logo{font-family:'Amiri',serif;color:var(--gold-light);font-size:1.25rem;font-weight:700;display:flex;align-items:center;gap:8px}
+.nav-links{display:flex;gap:16px;align-items:center}
+.nav-links a{color:rgba(255,255,255,.72);font-size:.78rem;font-weight:600;letter-spacing:.05em;transition:color .2s;padding:4px 0}
+.nav-links a:hover{color:var(--gold-light)}
+</style>
+</head>
+<body>
+
+<!-- BISMILLAH -->
+<div class="bismillah-banner">
+  بِسْمِ اللهِ الرَّحْمٰنِ الرَّحِيْمِ
+  <small>Au nom d'Allah, le Tout Miséricordieux, le Très Miséricordieux</small>
+</div>
+
+<!-- FORMULAIRE ADHÉSION AVEC RÉGION AU LIEU DE DISTRICT -->
+<section class="adhesion">
+  <h2>Formulaire d'Adhésion</h2>
+  <div class="form-card">
+    <form>
+      <div class="form-group">
+        <label>Région <span>*</span></label>
+        <input type="text" class="form-control" placeholder="Votre région" required>
+      </div>
+    </form>
+  </div>
+</section>
+
+</body>
+</html>
