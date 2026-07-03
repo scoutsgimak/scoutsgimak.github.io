@@ -1509,6 +1509,7 @@ footer strong{color:var(--gold-light)}
           <div class="settings-ok" id="settings-ok">✅ Modifications enregistrées !</div>
         </div>
 
+        <button class="admin-logout" onclick="forceCloudSync()" style="background:var(--green-mid);margin-bottom:8px;">☁️ Forcer la synchronisation maintenant</button>
         <button class="admin-logout" onclick="adminLogout()">Déconnexion</button>
       </div>
 
@@ -2513,8 +2514,125 @@ document.getElementById('nl-email').addEventListener('keydown', e => {
 // ⚙️ CONFIGUREZ CES DEUX VALEURS :
 const CLOUDINARY_CLOUD_NAME   = 'dhir3da34';
 const CLOUDINARY_UPLOAD_PRESET = 'gimak_album';
-// Mot de passe admin (changez-le !)
-const ADMIN_PASSWORD = 'Gimak@2009@2019';
+// Mot de passe admin : on ne stocke PAS le mot de passe en clair, seulement son empreinte (hash SHA-256).
+// Pour changer le mot de passe : demandez à Claude de calculer le hash du nouveau mot de passe et remplacez la valeur ci-dessous.
+const ADMIN_PASSWORD_HASH = '98e0609fd3b09337037fa431ba89ea4b066b971fa7f5ae6bf95347bd66e008d6'; // = "Gimak@2009@2019"
+async function sha256Hex(text) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+// ===== SYNCHRONISATION CLOUD (GitHub) — rend les mises à jour admin visibles pour TOUS les visiteurs =====
+// Les données (album, agenda, témoignages, blog, vidéos, réglages) sont enregistrées dans un fichier
+// "data.json" à la racine du dépôt GitHub. Chaque visiteur charge ce fichier au chargement du site.
+const GITHUB_OWNER     = 'scoutsgimak';
+const GITHUB_REPO      = 'scoutsgimak.github.io';
+const GITHUB_BRANCH    = 'main';
+const GITHUB_DATA_PATH = 'data.json';
+// ⚠️ Colle ici ton jeton GitHub (fine-grained, accès "Contents: Read and write" limité à ce seul dépôt) :
+const GITHUB_TOKEN = 'COLLE_TON_TOKEN_ICI';
+
+const CLOUD_KEYS = ['gimak_album','gimak_agenda','gimak_testi','gimak_blog','gimak_videos','gimak_settings'];
+let _cloudSha = null;        // sha courant du fichier data.json sur GitHub (nécessaire pour le mettre à jour)
+let _cloudSyncTimer = null;
+let _cloudSyncBadgeTimer = null;
+
+async function fetchCloudData() {
+  try {
+    const res = await fetch(
+      `https://raw.githubusercontent.com/${GITHUB_OWNER}/${GITHUB_REPO}/${GITHUB_BRANCH}/${GITHUB_DATA_PATH}?t=${Date.now()}`,
+      { cache: 'no-store' }
+    );
+    if (!res.ok) return null;
+    return await res.json();
+  } catch (e) { return null; }
+}
+
+function collectCloudState() {
+  return {
+    gimak_album:    albumData,
+    gimak_agenda:   agendaEvents,
+    gimak_testi:    _customTestimonials,
+    gimak_blog:     blogPosts,
+    gimak_videos:   videos,
+    gimak_settings: loadFromStorage('gimak_settings')
+  };
+}
+
+function showSyncBadge(status) {
+  let el = document.getElementById('cloud-sync-badge');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'cloud-sync-badge';
+    el.style.cssText = 'position:fixed;bottom:16px;left:16px;z-index:9999;padding:8px 14px;border-radius:10px;font-size:.78rem;font-weight:700;font-family:Nunito,sans-serif;box-shadow:0 4px 14px rgba(0,0,0,.25);transition:opacity .3s;';
+    document.body.appendChild(el);
+  }
+  clearTimeout(_cloudSyncBadgeTimer);
+  if (status === 'saving') {
+    el.textContent = '⏳ Synchronisation en cours…';
+    el.style.background = '#d4a017'; el.style.color = '#1a2e1f'; el.style.opacity = '1';
+  } else if (status === 'ok') {
+    el.textContent = '✅ Mis en ligne pour tout le monde';
+    el.style.background = '#1a6b35'; el.style.color = '#fff'; el.style.opacity = '1';
+    _cloudSyncBadgeTimer = setTimeout(() => { el.style.opacity = '0'; }, 3000);
+  } else if (status === 'error') {
+    el.textContent = '⚠️ Échec de la synchronisation — réessayez';
+    el.style.background = '#c0392b'; el.style.color = '#fff'; el.style.opacity = '1';
+    _cloudSyncBadgeTimer = setTimeout(() => { el.style.opacity = '0'; }, 5000);
+  }
+}
+
+function forceCloudSync() {
+  if (!adminAuthenticated) return;
+  clearTimeout(_cloudSyncTimer);
+  persistCloud();
+}
+
+async function persistCloud() {
+  if (!GITHUB_TOKEN || GITHUB_TOKEN === 'COLLE_TON_TOKEN_ICI') {
+    console.warn('Jeton GitHub manquant : les modifications restent locales, les autres visiteurs ne les verront pas.');
+    return;
+  }
+  clearTimeout(_cloudSyncTimer);
+  _cloudSyncTimer = setTimeout(async () => {
+    showSyncBadge('saving');
+    try {
+      if (!_cloudSha) {
+        const infoRes = await fetch(
+          `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${GITHUB_DATA_PATH}`,
+          { headers: { Authorization: `Bearer ${GITHUB_TOKEN}`, Accept: 'application/vnd.github+json' } }
+        );
+        if (infoRes.ok) { const info = await infoRes.json(); _cloudSha = info.sha; }
+      }
+      const state = collectCloudState();
+      const content = btoa(unescape(encodeURIComponent(JSON.stringify(state, null, 2))));
+      const putRes = await fetch(
+        `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${GITHUB_DATA_PATH}`,
+        {
+          method: 'PUT',
+          headers: { Authorization: `Bearer ${GITHUB_TOKEN}`, Accept: 'application/vnd.github+json' },
+          body: JSON.stringify({
+            message: 'Mise à jour du site depuis le panneau admin',
+            content,
+            sha: _cloudSha || undefined,
+            branch: GITHUB_BRANCH
+          })
+        }
+      );
+      if (putRes.ok) {
+        const putData = await putRes.json();
+        _cloudSha = putData.content.sha;
+        showSyncBadge('ok');
+      } else {
+        console.error('Échec de synchronisation GitHub', await putRes.text());
+        showSyncBadge('error');
+      }
+    } catch (e) {
+      console.error('Erreur de synchronisation cloud', e);
+      showSyncBadge('error');
+    }
+  }, 800); // regroupe plusieurs sauvegardes rapprochées en un seul commit GitHub
+}
 
 // ===== DÉCLENCHEUR SECRET : 5 taps rapides sur le titre =====
 let _secretTaps = 0;
@@ -2550,10 +2668,11 @@ function adminOverlayClick(e) {
   if (e.target === document.getElementById('admin-overlay')) closeAdminPanel();
 }
 
-function checkAdminPw() {
+async function checkAdminPw() {
   const val = document.getElementById('admin-pw-input').value;
   const err = document.getElementById('admin-pw-error');
-  if (val === ADMIN_PASSWORD) {
+  const valHash = await sha256Hex(val);
+  if (valHash === ADMIN_PASSWORD_HASH) {
     adminAuthenticated = true;
     document.body.classList.add('admin-active');
     err.style.display = 'none';
@@ -2936,6 +3055,9 @@ function saveToStorage(key, data) {
       alert('⚠️ Stockage plein : impossible de sauvegarder. Pour les vidéos, préférez un lien YouTube plutôt qu\'un fichier local — les fichiers vidéo sont trop lourds pour être stockés dans le navigateur.');
     }
   }
+  // Les modifications de contenu (album, agenda, témoignages, blog, vidéos, réglages)
+  // sont aussi envoyées sur GitHub pour être visibles par TOUS les visiteurs.
+  if (CLOUD_KEYS.includes(key)) persistCloud();
 }
 function loadFromStorage(key) {
   try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : null; } catch(e) { return null; }
@@ -4224,22 +4346,26 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-// ===== CHARGEMENT DES DONNÉES PERSISTÉES (modifications admin quotidiennes) =====
-function loadPersistedData() {
-  const savedAgenda = loadFromStorage('gimak_agenda');
+// ===== CHARGEMENT DES DONNÉES PERSISTÉES (partagées via GitHub, avec repli sur le stockage local) =====
+async function loadPersistedData() {
+  const cloud = await fetchCloudData(); // données à jour pour TOUS les visiteurs, si disponibles
+  const get = key => (cloud && cloud[key] !== undefined && cloud[key] !== null) ? cloud[key] : loadFromStorage(key);
+  if (cloud) { _cloudSha = null; } // sera récupéré au prochain enregistrement admin
+
+  const savedAgenda = get('gimak_agenda');
   if (savedAgenda && savedAgenda.length) agendaEvents = savedAgenda;
 
-  const savedTesti = loadFromStorage('gimak_testi');
+  const savedTesti = get('gimak_testi');
   if (savedTesti) { _customTestimonials = savedTesti; testimonials = _customTestimonials; }
 
-  const savedBlog = loadFromStorage('gimak_blog');
+  const savedBlog = get('gimak_blog');
   if (savedBlog) blogPosts = savedBlog;
 
-  const savedVideos = loadFromStorage('gimak_videos');
+  const savedVideos = get('gimak_videos');
   if (savedVideos) videos = savedVideos;
 
   // ===== RECHARGEMENT DE L'ALBUM PHOTO =====
-  const savedAlbum = loadFromStorage('gimak_album');
+  const savedAlbum = get('gimak_album');
   if (savedAlbum) {
     Object.keys(savedAlbum).forEach(yr => {
       if (!albumData[yr]) albumData[yr] = [];
@@ -4259,7 +4385,7 @@ function loadPersistedData() {
     });
   }
 
-  const savedSettings = loadFromStorage('gimak_settings');
+  const savedSettings = get('gimak_settings');
   if (savedSettings) {
     const s = savedSettings;
     if (s.name)   { const el=document.querySelector('.hero h1'); if(el) el.innerHTML=`Scouts <span>${s.name}</span>`; }
@@ -4279,12 +4405,13 @@ function loadPersistedData() {
   if (savedLang && savedLang !== 'fr') { _currentLang = savedLang; setLang(savedLang); }
 }
 
-// Rendu initial au chargement
-loadPersistedData();
-renderAgenda();
-renderTestimonials(_currentLang);
-renderBlog();
-renderVideos();
+// Rendu initial au chargement — on attend que les données partagées (GitHub) soient chargées
+loadPersistedData().finally(() => {
+  renderAgenda();
+  renderTestimonials(_currentLang);
+  renderBlog();
+  renderVideos();
+});
 
 
 </script>
