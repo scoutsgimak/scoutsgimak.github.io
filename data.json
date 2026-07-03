@@ -1,0 +1,78 @@
+{
+  "gimak_album": {
+    "2009": [],
+    "2010": [],
+    "2011": [],
+    "2012": [],
+    "2013": [],
+    "2014": [],
+    "2015": [],
+    "2016": [],
+    "2017": [],
+    "2018": [],
+    "2019": [],
+    "2020": [],
+    "2021": [],
+    "2022": [],
+    "2023": [],
+    "2024": [],
+    "2025": [],
+    "2026": [],
+    "2027": [],
+    "2028": [],
+    "2029": [],
+    "2030": []
+  },
+  "gimak_agenda": [
+    {
+      "day": "SAM",
+      "period": "Hebdo",
+      "title": "Réunion hebdomadaire",
+      "desc": "Lakota · 14h30 – 16h30"
+    },
+    {
+      "day": "🌙",
+      "period": "RAMADAN",
+      "title": "Action communautaire — Lakota",
+      "desc": "Opération Iftar debout · Distribution de vivres"
+    },
+    {
+      "day": "🏕️",
+      "period": "Bientôt",
+      "title": "Camp de vacances 2026",
+      "desc": "Région du Lôh-Djiboua"
+    },
+    {
+      "day": "28",
+      "period": "JUIL",
+      "title": "Journée portes ouvertes",
+      "desc": "Rencontre pour les familles & les nouvelles recrues"
+    }
+  ],
+  "gimak_testi": null,
+  "gimak_blog": [
+    {
+      "title": "Bienvenue sur le nouveau site du GIMAK",
+      "img": "https://i.ibb.co/DD8TgVjb/IMG-20260410-WA0032.jpg",
+      "date": "2026-06-20",
+      "text": "Le GIMAK lance son nouveau site internet pour mieux faire connaître ses activités, son histoire et ses valeurs. Restez connectés pour suivre toute notre actualité !"
+    }
+  ],
+  "gimak_videos": [],
+  "gimak_settings": {
+    "name": "GIMAK",
+    "full": "Groupe Imam Mamadou Konaté de Lakota",
+    "badge": "🏆 17 ans d'existence",
+    "slogan": "✦ Former pour mieux servir ✦",
+    "years": "17+",
+    "scouts": "80+",
+    "chefs": "16",
+    "email": "scoutsgimak@gmail.com",
+    "wa1": "0709893483",
+    "wa2": "0546471112",
+    "location": "Lakota — Région du Lôh-Djiboua, Côte d'Ivoire",
+    "rday": "SAM",
+    "rtime": "14h30 – 16h30",
+    "rlieu": "Lakota"
+  }
+}
